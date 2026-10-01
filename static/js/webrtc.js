@@ -132,9 +132,9 @@ class WebRTCManager {
 
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       const localVideo = document.getElementById("local-video");
-      if (localVideo) {
-        localVideo.srcObject = this.localStream;
-      }
+      const duelLocalVideo = document.getElementById("duel-local-video");
+      if (localVideo) localVideo.srcObject = this.localStream;
+      if (duelLocalVideo) duelLocalVideo.srcObject = this.localStream;
 
       this.setupPeerConnection();
       this.isInCall = true;
@@ -161,9 +161,9 @@ class WebRTCManager {
     this.peerConnection.ontrack = (event) => {
       this.remoteStream = event.streams[0];
       const remoteVideo = document.getElementById("remote-video");
-      if (remoteVideo) {
-        remoteVideo.srcObject = this.remoteStream;
-      }
+      const duelRemoteVideo = document.getElementById("duel-remote-video");
+      if (remoteVideo) remoteVideo.srcObject = this.remoteStream;
+      if (duelRemoteVideo) duelRemoteVideo.srcObject = this.remoteStream;
     };
 
     // Handle ICE candidates
@@ -281,8 +281,12 @@ class WebRTCManager {
 
     const localVideo = document.getElementById("local-video");
     const remoteVideo = document.getElementById("remote-video");
+    const duelLocalVideo = document.getElementById("duel-local-video");
+    const duelRemoteVideo = document.getElementById("duel-remote-video");
     if (localVideo) localVideo.srcObject = null;
     if (remoteVideo) remoteVideo.srcObject = null;
+    if (duelLocalVideo) duelLocalVideo.srcObject = null;
+    if (duelRemoteVideo) duelRemoteVideo.srcObject = null;
 
     this.updateCallUI();
   }
@@ -293,19 +297,43 @@ class WebRTCManager {
     const callBadge = document.getElementById("call-status-badge");
     const initialControls = document.querySelector(".media-controls-row");
 
+    // Duel screen embedded video view
+    const duelVideoView = document.getElementById("duel-video-view");
+    const chatMsgContainer = document.getElementById("chat-messages-container");
+    const chatInputForm = document.getElementById("chat-form");
+
     if (this.isInCall) {
       streamContainer?.classList.remove("hidden");
       activeControls?.classList.remove("hidden");
       initialControls?.classList.add("hidden");
+      
+      // If video call is active, show the video right inside the chat section!
+      if (this.mediaType === "video") {
+        duelVideoView?.classList.remove("hidden");
+        chatMsgContainer?.classList.add("hidden");
+        chatInputForm?.classList.add("hidden");
+      }
+
       if (callBadge) {
         callBadge.textContent = "Live";
         callBadge.style.color = "var(--color-green)";
         callBadge.style.background = "var(--color-green-bg)";
       }
+
+      // Bind duel pip buttons if not already bound
+      document.getElementById("duel-pip-mic-btn")?.onclick = () => this.toggleMicrophone();
+      document.getElementById("duel-pip-cam-btn")?.onclick = () => this.toggleCamera();
+      document.getElementById("duel-pip-hangup-btn")?.onclick = () => this.endCall(true);
     } else {
       streamContainer?.classList.add("hidden");
       activeControls?.classList.add("hidden");
       initialControls?.classList.remove("hidden");
+
+      // Return to regular chat view
+      duelVideoView?.classList.add("hidden");
+      chatMsgContainer?.classList.remove("hidden");
+      chatInputForm?.classList.remove("hidden");
+
       if (callBadge) {
         callBadge.textContent = "Inactive";
         callBadge.style.color = "var(--text-muted)";

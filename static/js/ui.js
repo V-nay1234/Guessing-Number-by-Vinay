@@ -244,6 +244,38 @@ class UIRenderer {
       }
     }
 
+    // 0. SCREEN 5: GAME WON (Highest Priority!)
+    if (status === "GAME_WON") {
+      document.getElementById("stage-victory")?.classList.remove("hidden");
+      if (banner) {
+        banner.className = "turn-banner banner-your-turn";
+        if (bannerIcon) bannerIcon.textContent = "🏆";
+      }
+
+      const winnerId = state.winner || state.winner_player_id;
+      const winnerName = (winnerId === me?.player_id) ? me.name : (opponent ? opponent.name : (state.winner_name || "Winner"));
+      const isWinner = (winnerId === myPlayerId);
+
+      if (bannerTitle) bannerTitle.textContent = `${winnerName.toUpperCase()} WON THE MATCH!`;
+      if (bannerSub) bannerSub.textContent = isWinner ? "Sensational tactical victory! You cracked their number!" : "Good effort! Rematch to reclaim the title.";
+
+      const victoryTitleEl = document.getElementById("victory-title");
+      if (victoryTitleEl) victoryTitleEl.textContent = `${winnerName.toUpperCase()} WON!`;
+      const victorySubEl = document.getElementById("victory-subtitle");
+      if (victorySubEl) {
+        victorySubEl.textContent = isWinner
+          ? "Flawless deduction! You completely cracked the secret code!"
+          : "Opponent cracked your secret number first. Ready for revenge?";
+      }
+
+      const oppSecret = opponent?.secret_number || state.opponent_secret || "—";
+      const oppSecretEl = document.getElementById("revealed-opponent-secret");
+      if (oppSecretEl) oppSecretEl.textContent = oppSecret;
+      const turnsCountEl = document.getElementById("revealed-turns-count");
+      if (turnsCountEl) turnsCountEl.textContent = state.turn_count || (state.guesses?.length || 1);
+      return;
+    }
+
     // 1. SCREEN 2: CHOOSE NUMBER LENGTH (STEP 1)
     if (!chosenLen) {
       document.getElementById("stage-length")?.classList.remove("hidden");
