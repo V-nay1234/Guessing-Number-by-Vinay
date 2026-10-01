@@ -1127,8 +1127,16 @@ class AppController {
   }
 }
 
-// Start app on DOMContentLoaded
-window.addEventListener("DOMContentLoaded", () => {
-  const app = new AppController();
-  app.init();
-});
+// Start app on DOMContentLoaded or immediately if already loaded
+function startApp() {
+  if (!window.app) {
+    window.app = new AppController();
+    window.app.init();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startApp);
+} else {
+  startApp();
+}

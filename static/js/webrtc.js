@@ -321,9 +321,12 @@ class WebRTCManager {
       }
 
       // Bind duel pip buttons if not already bound
-      document.getElementById("duel-pip-mic-btn")?.onclick = () => this.toggleMicrophone();
-      document.getElementById("duel-pip-cam-btn")?.onclick = () => this.toggleCamera();
-      document.getElementById("duel-pip-hangup-btn")?.onclick = () => this.endCall(true);
+      const pipMic = document.getElementById("duel-pip-mic-btn");
+      if (pipMic) pipMic.onclick = () => this.toggleMicrophone();
+      const pipCam = document.getElementById("duel-pip-cam-btn");
+      if (pipCam) pipCam.onclick = () => this.toggleCamera();
+      const pipHangup = document.getElementById("duel-pip-hangup-btn");
+      if (pipHangup) pipHangup.onclick = () => this.endCall(true);
     } else {
       streamContainer?.classList.add("hidden");
       activeControls?.classList.add("hidden");
