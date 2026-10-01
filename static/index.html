@@ -457,6 +457,22 @@
                   <span id="typing-indicator-text" class="typing-indicator"></span>
                 </div>
 
+                <!-- EMBEDDED OPPONENT VIDEO VIEW (Shown during Video Call) -->
+                <div id="duel-video-view" class="duel-video-view hidden">
+                  <div class="duel-remote-video-wrap">
+                    <video id="duel-remote-video" autoplay playsinline></video>
+                    <div class="duel-local-pip-wrap">
+                      <video id="duel-local-video" autoplay playsinline muted></video>
+                      <span class="pip-label">You</span>
+                    </div>
+                    <div class="duel-call-mini-bar">
+                      <button type="button" id="duel-pip-mic-btn" class="call-mini-btn" title="Mute/Unmute Mic">🎙️</button>
+                      <button type="button" id="duel-pip-cam-btn" class="call-mini-btn" title="Toggle Cam">📹</button>
+                      <button type="button" id="duel-pip-hangup-btn" class="call-mini-btn hangup" title="End Call">📞</button>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Chat Stream (newer appear in bottom, older vanish into top side) -->
                 <div id="chat-messages-container" class="chat-messages" tabindex="0" aria-label="Chat messages stream">
                   <div class="system-chat-msg">Duel chat connected</div>
@@ -633,10 +649,10 @@
   </script>
 
   <!-- Scripts -->
-  <script src="js/emoji.js?v=22"></script>
-  <script src="js/socket.js?v=22"></script>
-  <script src="js/webrtc.js?v=22"></script>
-  <script src="js/ui.js?v=22"></script>
-  <script src="js/app.js?v=22"></script>
+  <script src="js/emoji.js?v=23"></script>
+  <script src="js/socket.js?v=23"></script>
+  <script src="js/webrtc.js?v=23"></script>
+  <script src="js/ui.js?v=23"></script>
+  <script src="js/app.js?v=23"></script>
 </body>
 </html>
