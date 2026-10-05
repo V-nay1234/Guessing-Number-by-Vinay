@@ -308,7 +308,18 @@ class UIRenderer {
       document.getElementById("stage-secret")?.classList.remove("hidden");
       banner?.classList.add("hidden");
       const secretWaiting = document.getElementById("secret-waiting-note");
-      secretWaiting?.classList.remove("hidden");
+      if (secretWaiting) {
+        secretWaiting.classList.remove("hidden");
+        if (!opponent) {
+          secretWaiting.innerHTML = `<span>🔒 Your secret is locked! Waiting for Challenger to join Room...</span>`;
+        } else if (!opponent.number_length) {
+          secretWaiting.innerHTML = `<span>🔒 Your secret is locked! <strong>${escapeHtml(opponent.name)}</strong> is choosing number length...</span>`;
+        } else if (!opponent.ready) {
+          secretWaiting.innerHTML = `<span>🔒 Your secret is locked! <strong>${escapeHtml(opponent.name)}</strong> is entering secret number...</span>`;
+        } else {
+          secretWaiting.innerHTML = `<span>⚔️ Both players locked in! Entering duel arena...</span>`;
+        }
+      }
       return;
     }
 
@@ -329,7 +340,7 @@ class UIRenderer {
             banner.className = "turn-banner banner-your-turn";
             if (bannerIcon) bannerIcon.textContent = "🎯";
             if (bannerTitle) bannerTitle.textContent = "YOUR TURN TO GUESS";
-            if (bannerSub) bannerSub.textContent = `Submit a ${targetLen}-digit guess to test opponent's secret number!`;
+            if (bannerSub) bannerSub.textContent = `Submit a ${targetLen}-digit guess to decode opponent's secret number!`;
           }
           if (turnBadge) {
             turnBadge.className = "turn-indicator-badge turn-active";
@@ -341,7 +352,7 @@ class UIRenderer {
             banner.className = "turn-banner banner-opponent-turn";
             if (bannerIcon) bannerIcon.textContent = "⏳";
             if (bannerTitle) bannerTitle.textContent = `Waiting for ${oppName}...`;
-            if (bannerSub) bannerSub.textContent = `${oppName} is currently analyzing and submitting a guess.`;
+            if (bannerSub) bannerSub.textContent = `${oppName} is making their guess...`;
           }
           if (turnBadge) {
             turnBadge.className = "turn-indicator-badge turn-waiting";

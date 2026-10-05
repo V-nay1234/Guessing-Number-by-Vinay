@@ -135,7 +135,23 @@ class AppController {
     });
 
     gameSocket.on("STATE_UPDATE", (data) => {
+      const prevStatus = this.gameState?.status;
+      const newStatus = data?.status;
+
+      // Detect Rematch / Reset transition from server
+      const me = data.player_1?.player_id === this.session?.player_id ? data.player_1 : data.player_2;
+      const wasRematch = (prevStatus === "GAME_WON" && newStatus === "CHOOSING_NUMBER_LENGTH") ||
+                         (newStatus === "CHOOSING_NUMBER_LENGTH" && me && me.number_length === null && this.selectedLength !== null);
+
+      if (wasRematch) {
+        this.resetMatchState(false);
+        showToast("⚔️ Rematch started! Choose secret number length.", "info");
+      }
+
       this.gameState = data;
+      if (me && me.number_length) {
+        this.selectedLength = me.number_length;
+      }
       ui.render(data, this.session?.player_id);
       this.syncPinBoxes();
     });
@@ -194,8 +210,15 @@ class AppController {
         if (this.invitedCode) {
           this.handleJoinGame();
         } else {
-          this.handleCreateGame();
+          document.getElementById("host-password-input")?.focus();
         }
+      }
+    });
+
+    // Enter key on host password input triggers create game
+    document.getElementById("host-password-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        this.handleCreateGame();
       }
     });
 
@@ -312,30 +335,42 @@ class AppController {
 
     // Rematch & New Game
     document.getElementById("rematch-btn")?.addEventListener("click", () => {
-      if (gameSocket.ws && gameSocket.ws.readyState === WebSocket.OPEN) {
-        gameSocket.send("REMATCH", {});
-      } else if (this.gameState) {
-        const me = this.gameState.player_1;
-        const opp = this.gameState.player_2;
-        if (me) { me.ready = false; me.number_length = null; }
-        if (opp) { opp.ready = false; opp.number_length = null; opp.secret_number = null; }
-        this.gameState.status = "CHOOSING_NUMBER_LENGTH";
-        this.gameState.guesses = [];
-        this.secretInputDigits = [];
-        this.guessInputDigits = [];
-        document.getElementById("stage-victory")?.classList.add("hidden");
-        ui.render(this.gameState, this.session?.player_id);
-        this.syncPinBoxes();
-        showToast("Starting rematch! Choose your secret number length.", "info");
+      const rematchBtn = document.getElementById("rematch-btn");
+      if (rematchBtn) {
+        rematchBtn.disabled = true;
+        rematchBtn.textContent = "Starting Rematch...";
       }
+      this.resetMatchState(true);
+      showToast("Starting rematch! Choose your secret number length.", "info");
     });
 
     document.getElementById("new-game-btn")?.addEventListener("click", () => {
       this.clearSession();
-      document.getElementById("stage-victory")?.classList.add("hidden");
+      if (gameSocket.ws) {
+        gameSocket.disconnect();
+      }
+      this.resetMatchState(false);
       document.getElementById("game-container")?.classList.add("hidden");
       document.getElementById("lobby-screen")?.classList.remove("hidden");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      this.checkUrlForInvite();
     });
+
+    // Header Sync / Refresh Button
+    const handleSyncState = () => {
+      showToast("Syncing match with server...", "info");
+      if (gameSocket.ws && gameSocket.ws.readyState === WebSocket.OPEN) {
+        gameSocket.send("GET_STATE", {});
+      } else if (this.session) {
+        gameSocket.connect(this.session.game_id, this.session.player_id, this.session.session_token);
+      }
+      if (this.gameState) {
+        ui.render(this.gameState, this.session?.player_id);
+        this.syncPinBoxes();
+      }
+    };
+    document.getElementById("header-sync-btn")?.addEventListener("click", handleSyncState);
+    document.getElementById("connection-badge")?.addEventListener("click", handleSyncState);
 
     // Chat Form Submit
     document.getElementById("chat-form")?.addEventListener("submit", (e) => {
@@ -588,13 +623,21 @@ class AppController {
   // 5. Create Game Request
   async handleCreateGame() {
     const nameInput = document.getElementById("player-name-input");
+    const passwordInput = document.getElementById("host-password-input");
     const name = nameInput?.value.trim() || "Vinay";
+    const password = passwordInput?.value.trim() || "";
+
+    if (!password) {
+      showToast("🔒 Please enter the host password to create a game.", "warning");
+      passwordInput?.focus();
+      return;
+    }
 
     try {
       const res = await fetch("/api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_name: name })
+        body: JSON.stringify({ player_name: name, password: password })
       });
 
       if (!res.ok) {
@@ -612,8 +655,7 @@ class AppController {
 
       this.enterGameRoom();
     } catch (err) {
-      console.warn("Backend not reachable or running in static view. Launching preview duel mode:", err);
-      this.startLocalDemoGame(name);
+      showToast(err.message || "Could not create game room.", "error");
     }
   }
 
@@ -802,9 +844,51 @@ class AppController {
       gameSocket.disconnect();
     }
     this.clearSession();
+    this.resetMatchState(false);
     document.getElementById("game-container")?.classList.add("hidden");
     document.getElementById("lobby-screen")?.classList.remove("hidden");
+    window.history.replaceState({}, document.title, window.location.pathname);
+    this.checkUrlForInvite();
     showToast("Returned to lobby", "info");
+  }
+
+  // Clean Rematch / State Reset
+  resetMatchState(notifyServer = false) {
+    this.selectedLength = null;
+    this.secretInputDigits = [];
+    this.guessInputDigits = [];
+    ui.hideInstructionsOverlay();
+
+    if (this.gameState) {
+      this.gameState.status = "CHOOSING_NUMBER_LENGTH";
+      this.gameState.winner = null;
+      this.gameState.winner_player_id = null;
+      this.gameState.guesses = [];
+      const me = this.gameState.player_1?.player_id === this.session?.player_id ? this.gameState.player_1 : this.gameState.player_2;
+      const opp = this.gameState.player_1?.player_id === this.session?.player_id ? this.gameState.player_2 : this.gameState.player_1;
+      if (me) { me.ready = false; me.number_length = null; me.secret_number = null; }
+      if (opp) { opp.ready = false; opp.number_length = null; opp.secret_number = null; }
+    }
+
+    document.getElementById("stage-victory")?.classList.add("hidden");
+    document.getElementById("stage-duel")?.classList.add("hidden");
+    document.getElementById("stage-secret")?.classList.add("hidden");
+    document.getElementById("secret-waiting-note")?.classList.add("hidden");
+    document.getElementById("length-waiting-note")?.classList.add("hidden");
+    document.getElementById("stage-length")?.classList.remove("hidden");
+    document.querySelectorAll(".length-btn").forEach(b => b.classList.remove("selected"));
+
+    const rematchBtn = document.getElementById("rematch-btn");
+    if (rematchBtn) {
+      rematchBtn.disabled = false;
+      rematchBtn.textContent = "PLAY REMATCH ⚡";
+    }
+
+    if (notifyServer && gameSocket.ws && gameSocket.ws.readyState === WebSocket.OPEN) {
+      gameSocket.send("REMATCH", {});
+    }
+
+    this.syncPinBoxes();
   }
 
   // 8. Length Selection (Screen 2 -> Screen 3 Transition)
@@ -894,12 +978,9 @@ class AppController {
     showToast("Secret number locked! Review instructions to begin.", "success");
   }
 
-  // 10. Guess Entry
+  // 10. Guess Entry (Allows typing during opponent turn to draft guess!)
   handleGuessKey(digit) {
-    if (!this.gameState?.is_my_turn) {
-      showToast("It is not your turn to guess.", "info");
-      return;
-    }
+    if (this.gameState?.status === "GAME_WON") return;
 
     const requiredLen = this.gameState?.required_guess_length || 4;
     if (this.guessInputDigits.length < requiredLen) {
@@ -921,8 +1002,10 @@ class AppController {
   }
 
   handleSubmitGuess() {
+    if (this.gameState?.status === "GAME_WON") return;
+
     if (!this.gameState?.is_my_turn) {
-      showToast("It is not your turn.", "error");
+      showToast("⏳ Please wait for opponent to complete their turn before submitting.", "info");
       return;
     }
 
@@ -1023,6 +1106,8 @@ class AppController {
     // Guess PIN boxes
     const guessRow = document.getElementById("guess-pin-boxes");
     const targetLen = this.gameState?.required_guess_length || 4;
+    const isMyTurn = !!this.gameState?.is_my_turn;
+    const isWon = this.gameState?.status === "GAME_WON";
 
     if (guessRow) {
       guessRow.innerHTML = "";
@@ -1032,8 +1117,10 @@ class AppController {
         if (i < this.guessInputDigits.length) {
           box.textContent = this.guessInputDigits[i];
           box.classList.add("filled");
-        } else if (i === this.guessInputDigits.length && this.gameState?.is_my_turn) {
+          if (!isMyTurn) box.classList.add("draft-filled");
+        } else if (i === this.guessInputDigits.length) {
           box.classList.add("active-box");
+          if (!isMyTurn) box.classList.add("draft-active");
         }
         guessRow.appendChild(box);
       }
@@ -1041,10 +1128,23 @@ class AppController {
 
     const submitGuessBtn = document.getElementById("submit-guess-btn");
     if (submitGuessBtn) {
-      submitGuessBtn.disabled = 
-        !this.gameState?.is_my_turn || 
-        this.guessInputDigits.length !== targetLen ||
-        this.gameState?.status === "GAME_WON";
+      const isFull = this.guessInputDigits.length === targetLen;
+      if (isWon) {
+        submitGuessBtn.disabled = true;
+        submitGuessBtn.textContent = "MATCH CONCLUDED";
+        submitGuessBtn.classList.remove("btn-draft-mode", "is-ready");
+      } else if (isMyTurn) {
+        submitGuessBtn.disabled = !isFull;
+        submitGuessBtn.textContent = isFull ? "SUBMIT GUESS 🎯" : `ENTER ${targetLen} DIGITS`;
+        submitGuessBtn.classList.remove("btn-draft-mode");
+        submitGuessBtn.classList.toggle("is-ready", isFull);
+      } else {
+        // Opponent's turn: allow entering/editing digits, but disable submission until turn begins
+        submitGuessBtn.disabled = true;
+        submitGuessBtn.classList.add("btn-draft-mode");
+        submitGuessBtn.classList.remove("is-ready");
+        submitGuessBtn.textContent = "⏳ OPPONENT'S TURN";
+      }
     }
   }
 
@@ -1074,10 +1174,14 @@ class AppController {
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (status === "WAITING_FOR_SECRET_NUMBERS") {
+      if (status === "WAITING_FOR_SECRET_NUMBERS" || (status === "CHOOSING_NUMBER_LENGTH" && this.secretInputDigits.length > 0)) {
         this.handleSubmitSecret();
       } else if (status === "PLAYER_1_TURN" || status === "PLAYER_2_TURN") {
-        this.handleSubmitGuess();
+        if (!this.gameState?.is_my_turn) {
+          showToast("⏳ Guess is pre-filled! Wait for opponent's turn to submit.", "info");
+        } else {
+          this.handleSubmitGuess();
+        }
       }
     }
   }
