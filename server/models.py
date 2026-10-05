@@ -123,6 +123,7 @@ class GameRoom(BaseModel):
 # API Request/Response Schemas
 class CreateGameRequest(BaseModel):
     player_name: str
+    password: Optional[str] = None
 
 class CreateGameResponse(BaseModel):
     game_id: str

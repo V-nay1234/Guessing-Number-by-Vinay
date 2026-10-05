@@ -45,6 +45,10 @@ def on_startup():
 
 @app.post("/api/create", response_model=CreateGameResponse)
 async def create_game(req: CreateGameRequest, request: Request):
+    if settings.CREATE_GAME_PASSWORD:
+        if not req.password or req.password.strip() != settings.CREATE_GAME_PASSWORD:
+            raise HTTPException(status_code=403, detail="Invalid host password. Please enter the correct password to host a new duel.")
+
     name = sanitize_name(req.player_name)
     game_id = str(uuid.uuid4())
     game_code = generate_game_code()

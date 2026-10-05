@@ -11,5 +11,6 @@ class Settings(BaseModel):
     ROOM_EXPIRATION_HOURS: int = 24
     RATE_LIMIT_GUESS_SECONDS: float = 0.5
     RATE_LIMIT_CHAT_SECONDS: float = 0.3
+    CREATE_GAME_PASSWORD: str = os.getenv("CREATE_GAME_PASSWORD", "vinay123")
 
 settings = Settings()
