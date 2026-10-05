@@ -85,6 +85,10 @@
           <div class="action-box-icon">⚡</div>
           <h3>Host New Duel</h3>
           <p>Get a unique room code and shareable invite link for your friend.</p>
+          <div class="lobby-form-group" style="margin-bottom: 0.75rem; text-align: left;">
+            <label for="host-password-input" class="form-label" style="font-size: 0.7rem;">HOST PASSWORD</label>
+            <input type="password" id="host-password-input" class="form-input" placeholder="Password to create game..." autocomplete="current-password" />
+          </div>
           <button id="create-game-btn" class="btn btn-primary btn-block">CREATE GAME</button>
         </div>
 
@@ -163,8 +167,11 @@
           <button id="header-video-btn" class="header-call-btn" title="Start Video Call" aria-label="Video Call">📹</button>
         </div>
 
+        <!-- Refresh / Sync Button -->
+        <button id="header-sync-btn" class="header-refresh-btn" title="Sync / Refresh Match State" aria-label="Refresh Match">🔄</button>
+
         <!-- Connection Status -->
-        <div id="connection-badge" class="connection-badge status-connected" aria-live="polite">
+        <div id="connection-badge" class="connection-badge status-connected" aria-live="polite" title="Click to refresh match connection">
           <span class="status-dot"></span>
           <span id="connection-text" class="status-text">Connected</span>
         </div>
@@ -649,10 +656,10 @@
   </script>
 
   <!-- Scripts -->
-  <script src="js/emoji.js?v=24"></script>
-  <script src="js/socket.js?v=24"></script>
-  <script src="js/webrtc.js?v=24"></script>
-  <script src="js/ui.js?v=24"></script>
-  <script src="js/app.js?v=24"></script>
+  <script src="js/emoji.js?v=27"></script>
+  <script src="js/socket.js?v=27"></script>
+  <script src="js/webrtc.js?v=27"></script>
+  <script src="js/ui.js?v=27"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 </html>
